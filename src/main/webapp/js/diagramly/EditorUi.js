@@ -14,6 +14,17 @@
 	 */
 	EditorUi.compactUi = uiTheme != 'atlas';
 	
+
+	/**
+	 * Overrides default grid color for dark mode
+	 */
+	mxGraphView.prototype.defaultDarkGridColor = '#6e6e6e';
+	
+	if (uiTheme == 'dark')
+	{
+		mxGraphView.prototype.gridColor = mxGraphView.prototype.defaultDarkGridColor;
+	}
+	
 	/**
 	 * Switch to disable logging for mode and search terms.
 	 */
@@ -846,7 +857,7 @@
 	 * @param {number} dy Y-coordinate of the translation.
 	 */
 	EditorUi.prototype.createFileData = function(node, graph, file, url, forceXml, forceSvg, forceHtml,
-		embeddedCallback, ignoreSelection, compact, nonCompressed)
+		embeddedCallback, ignoreSelection, compact, uncompressed)
 	{
 		graph = (graph != null) ? graph : this.editor.graph;
 		forceXml = (forceXml != null) ? forceXml : false;
@@ -876,7 +887,7 @@
 			// Ignores case for possible HTML or XML nodes
 			if (fileNode.nodeName.toLowerCase() != 'mxfile')
 			{
-				if (nonCompressed)
+				if (uncompressed)
 				{
 					var diagramNode = node.ownerDocument.createElement('diagram');
 					diagramNode.setAttribute('id', Editor.guid());
@@ -915,11 +926,24 @@
 				fileNode.removeAttribute('userAgent');
 				fileNode.removeAttribute('version');
 				fileNode.removeAttribute('editor');
+				fileNode.removeAttribute('pages');
 				fileNode.removeAttribute('type');
+				
+				if (mxClient.IS_CHROMEAPP)
+				{
+					fileNode.setAttribute('host', 'Chrome');
+				}
+				else if (EditorUi.isElectronApp)
+				{
+					fileNode.setAttribute('host', 'Electron');
+				}
+				else
+				{
+					fileNode.setAttribute('host', window.location.hostname);
+				}
 				
 				// Adds new metadata
 				fileNode.setAttribute('modified', new Date().toISOString());
-				fileNode.setAttribute('host', window.location.hostname);
 				fileNode.setAttribute('agent', navigator.userAgent);
 				fileNode.setAttribute('version', EditorUi.VERSION);
 				fileNode.setAttribute('etag', Editor.guid());
@@ -935,11 +959,6 @@
 				{
 					fileNode.setAttribute('pages', this.pages.length);
 				}
-				
-				if (nonCompressed)
-				{
-					fileNode.setAttribute('compressed', 'false');
-				}
 			}
 			else
 			{
@@ -954,7 +973,7 @@
 				fileNode.removeAttribute('type');
 			}
 
-			var xml = (nonCompressed) ? mxUtils.getPrettyXml(fileNode) : mxUtils.getXml(fileNode);
+			var xml = (uncompressed) ? mxUtils.getPrettyXml(fileNode) : mxUtils.getXml(fileNode);
 			
 			// Writes the file as an embedded HTML file
 			if (!forceSvg && !forceXml && (forceHtml || (file != null && /(\.html)$/i.test(file.getTitle()))))
@@ -982,16 +1001,17 @@
 	 * @param {number} dx X-coordinate of the translation.
 	 * @param {number} dy Y-coordinate of the translation.
 	 */
-	EditorUi.prototype.getXmlFileData = function(ignoreSelection, currentPage, nonCompressed)
+	EditorUi.prototype.getXmlFileData = function(ignoreSelection, currentPage, uncompressed)
 	{
 		ignoreSelection = (ignoreSelection != null) ? ignoreSelection : true;
 		currentPage = (currentPage != null) ? currentPage : false;
+		uncompressed = (uncompressed != null) ? uncompressed : !Editor.compressXml;
 		
 		var node = this.editor.getGraphXml(ignoreSelection);
 			
 		if (ignoreSelection && this.fileNode != null && this.currentPage != null)
 		{
-			if (nonCompressed)
+			if (uncompressed)
 			{
 				EditorUi.removeChildNodes(this.currentPage.node);
 				this.currentPage.node.appendChild(node);
@@ -1021,7 +1041,7 @@
 							var temp = enc.encode(new mxGraphModel(this.pages[i].root));
 							this.editor.graph.saveViewState(this.pages[i].viewState, temp);
 							
-							if (nonCompressed)
+							if (uncompressed)
 							{
 								EditorUi.removeChildNodes(this.pages[i].node);
 								this.pages[i].node.appendChild(temp);
@@ -1034,7 +1054,7 @@
 							// Marks the page as up-to-date
 							delete this.pages[i].needsUpdate;
 						}
-						else if (nonCompressed)
+						else if (uncompressed)
 						{
 							var temp = Editor.parseDiagramNode(this.pages[i].node);
 							EditorUi.removeChildNodes(this.pages[i].node);
@@ -1313,45 +1333,50 @@
 	 * @param {number} dy Y-coordinate of the translation.
 	 */
 	EditorUi.prototype.getFileData = function(forceXml, forceSvg, forceHtml, embeddedCallback, ignoreSelection,
-		currentPage, node, compact, file, nonCompressed)
+		currentPage, node, compact, file, uncompressed)
 	{
 		ignoreSelection = (ignoreSelection != null) ? ignoreSelection : true;
 		currentPage = (currentPage != null) ? currentPage : false;
 		
-		node = (node != null) ? node : this.getXmlFileData(ignoreSelection, currentPage, nonCompressed);
-		file = (file != null) ? file : this.getCurrentFile();
-		var graph = this.editor.graph;
-		
-		// Exports SVG for first page while other page is visible by creating a graph
-		// LATER: Add caching for the graph or SVG while not on first page
-		if (this.pages != null && this.currentPage != this.pages[0] && (forceSvg ||
-			(!forceXml && file != null && /(\.svg)$/i.test(file.getTitle()))))
+		// Forces compression of embedded XML
+		if (forceSvg || (!forceXml && file != null && /(\.svg)$/i.test(file.getTitle())))
 		{
-			var graphGetGlobalVariable = graph.getGlobalVariable;
-			graph = this.createTemporaryGraph(graph.getStylesheet());
-			var page = this.pages[0];
-	
-			graph.getGlobalVariable = function(name)
+			uncompressed = false;
+			
+			// Exports SVG for first page while other page is visible by creating a graph
+			// LATER: Add caching for the graph or SVG while not on first page
+			if (this.pages != null && this.currentPage != this.pages[0])
 			{
-				if (name == 'page')
+				var graphGetGlobalVariable = graph.getGlobalVariable;
+				graph = this.createTemporaryGraph(graph.getStylesheet());
+				var page = this.pages[0];
+		
+				graph.getGlobalVariable = function(name)
 				{
-					return page.getName();
-				}
-				else if (name == 'pagenumber')
-				{
-					return 1;
-				}
-				
-				return graphGetGlobalVariable.apply(this, arguments);
-			};
-	
-			document.body.appendChild(graph.container);
-			graph.model.setRoot(page.root);
+					if (name == 'page')
+					{
+						return page.getName();
+					}
+					else if (name == 'pagenumber')
+					{
+						return 1;
+					}
+					
+					return graphGetGlobalVariable.apply(this, arguments);
+				};
+		
+				document.body.appendChild(graph.container);
+				graph.model.setRoot(page.root);
+			}
 		}
 		
+		node = (node != null) ? node : this.getXmlFileData(ignoreSelection, currentPage, uncompressed);
+		file = (file != null) ? file : this.getCurrentFile();
+		var graph = this.editor.graph;
+
 		var result = this.createFileData(node, graph, file, window.location.href,
 			forceXml, forceSvg, forceHtml, embeddedCallback, ignoreSelection, compact,
-			nonCompressed);
+			uncompressed);
 		
 		// Removes temporary graph from DOM
 		if (graph != this.editor.graph)
@@ -1502,18 +1527,10 @@
 		var node = (data != null && data.length > 0) ? mxUtils.parseXml(data).documentElement : null;
 		
 		// Checks for parser errors
-		var errors = (node != null) ? node.getElementsByTagName('parsererror') : null;
+		var cause = Editor.extractParserError(node, mxResources.get('invalidOrMissingFile'));
 		
-		if (errors != null && errors.length > 0)
+		if (cause)
 		{
-			var cause = mxResources.get('invalidOrMissingFile');
-			var divs = errors[0].getElementsByTagName('div');
-			
-			if (divs.length > 0)
-			{
-				cause = mxUtils.getTextContent(divs[0]);
-			}
-			
 			throw new Error(cause);
 		}
 		else
@@ -1624,7 +1641,7 @@
 	 * @param {number} dx X-coordinate of the translation.
 	 * @param {number} dy Y-coordinate of the translation.
 	 */
-	EditorUi.prototype.downloadFile = function(format, nonCompressed, addShadow, ignoreSelection, currentPage, pageVisible, transparent, scale, border, grid)
+	EditorUi.prototype.downloadFile = function(format, uncompressed, addShadow, ignoreSelection, currentPage, pageVisible, transparent, scale, border, grid)
 	{
 		try
 		{
@@ -1636,7 +1653,7 @@
 			{
 		    	var data = '<?xml version="1.0" encoding="UTF-8"?>\n' +
 		    		this.getFileData(true, null, null, null, ignoreSelection, currentPage,
-		    			null, null, null, nonCompressed);
+		    			null, null, null, uncompressed);
 		    	
 		    	this.saveData(filename, format, data, 'text/xml');
 			}
@@ -3654,14 +3671,77 @@
 							this.handleError(resp, title, fn, invokeFnOnClose, notFoundMessage)
 						}), retry, mxResources.get('changeUser'), mxUtils.bind(this, function()
 						{
-							if (this.spinner.spin(document.body, mxResources.get('loading')))
+							var driveUsers = this.drive.getUsersList();
+							
+							var div = document.createElement('div');
+							
+							var title = document.createElement('span');
+							title.style.marginTop = '6px';
+							mxUtils.write(title, mxResources.get('changeUser') + ': ');
+							
+							div.appendChild(title);
+							
+							var usersSelect = document.createElement('select');
+							usersSelect.style.width = '200px';
+							
+							//TODO This code is similar to Dialogs.js change user part in SplashDialog
+							function fillUsersSelect()
 							{
-								this.drive.clearUserId();
-								gapi.auth.signOut();
+								usersSelect.innerHTML = '';
 								
-								// Reload page to reset client auth
-								window.location.reload();
+								for (var i = 0; i < driveUsers.length; i++)
+								{
+									var option = document.createElement('option');
+									mxUtils.write(option, driveUsers[i].displayName);
+									option.value = i;
+									usersSelect.appendChild(option);
+									//More info (email) about the user in a disabled option
+									option = document.createElement('option');
+									option.innerHTML = '&nbsp;&nbsp;&nbsp;';
+									mxUtils.write(option, '<' + driveUsers[i].email + '>');
+									option.setAttribute('disabled', 'disabled');
+									usersSelect.appendChild(option);
+								}
+								
+								//Add account option
+								var option = document.createElement('option');
+								mxUtils.write(option, mxResources.get('addAccount'));
+								option.value = driveUsers.length;
+								usersSelect.appendChild(option);
 							}
+							
+							fillUsersSelect();
+							
+							mxEvent.addListener(usersSelect, 'change', mxUtils.bind(this, function()
+							{
+								var userIndex = usersSelect.value;
+								var existingAccount = driveUsers.length != userIndex;
+								
+								if (existingAccount)
+								{
+									this.drive.setUser(driveUsers[userIndex]);
+								}
+								
+								this.drive.authorize(existingAccount, mxUtils.bind(this, function()
+								{
+									if (!existingAccount) 
+									{
+										driveUsers = this.drive.getUsersList();
+										fillUsersSelect();
+									}
+								}), mxUtils.bind(this, function(resp)
+								{
+									this.handleError(resp);
+								}), true);
+							}));
+							
+							div.appendChild(usersSelect);
+							
+							var dlg = new CustomDialog(this, div, mxUtils.bind(this, function()
+							{
+								this.loadFile(window.location.hash.substr(1), true);
+							}));
+							this.showDialog(dlg.container, 300, 75, true, true);
 						}), mxResources.get('cancel'), mxUtils.bind(this, function()
 						{
 							window.location.hash = '';
@@ -4451,7 +4531,8 @@
 				
 				if (editable)
 				{
-					svgRoot.setAttribute('content', this.getFileData(true, null, null, null, ignoreSelection, currentPage));
+					svgRoot.setAttribute('content', this.getFileData(true, null, null, null, ignoreSelection,
+						currentPage, null, null, null, false));
 				}
 				
 				if (this.editor.fontCss != null)
@@ -5907,7 +5988,8 @@
 		   		{
 		   			if (diagramData == null)
 		   			{
-		   				diagramData = this.getFileData(true);
+		   				diagramData = this.getFileData(true, null, null, null, null,
+		   						null, null, null, null, false);
 		   			}
 		   			
 		   	   	    var data = canvas.toDataURL('image/png');
@@ -8905,6 +8987,7 @@
 			var showRuler = urlParams['ruler'] == '1' || (mxSettings.isRulerOn() && urlParams['lightbox'] != '1');
 			
 			this.ruler = showRuler? new mxDualRuler(this, view.unit) : null;
+			this.refresh();
 		}
 		
 		// Adds an element to edit the style in the footer in test mode
@@ -9488,6 +9571,30 @@
 			// Gets recent colors from settings
 			ColorDialog.recentColors = mxSettings.getRecentColors();
 
+			// Avoids overridden values for changes in
+			// multiple windows and updates shared values 
+			if (isLocalStorage)
+			{
+				try
+				{
+					window.addEventListener('storage', mxUtils.bind(this, function(evt)
+					{
+						if (evt.key == mxSettings.key)
+						{
+							mxSettings.load();
+							
+							// Updates values
+							ColorDialog.recentColors = mxSettings.getRecentColors();
+							this.menus.customFonts = mxSettings.getCustomFonts();
+						}
+					}), false);
+				}
+				catch (e)
+				{
+					// ignore
+				}
+			}
+
 			// Updates UI to reflect current edge style
 			this.fireEvent(new mxEventObject('styleChanged', 'keys', [], 'values', [], 'cells', []));
 			
@@ -9528,11 +9635,13 @@
 			/**
 			 * Persists default grid color.
 			 */
-			this.editor.graph.view.gridColor = mxSettings.getGridColor();
+			this.editor.graph.view.gridColor = mxSettings.getGridColor(uiTheme == 'dark');
 			
 			this.addListener('gridColorChanged', mxUtils.bind(this, function(sender, evt)
 			{
-				mxSettings.setGridColor(this.editor.graph.view.gridColor);
+				console.log('gridColorChanged', this.editor.graph.view.gridColor);
+				
+				mxSettings.setGridColor(this.editor.graph.view.gridColor, uiTheme == 'dark');
 				mxSettings.save();
 			}));
 
@@ -10889,8 +10998,9 @@
 				        	{
 				        		bg = null;
 				        	}
-					        	
-							msg.xml = this.getFileData(true);
+
+							msg.xml = this.getFileData(true, null, null, null, null,
+								null, null, null, null, false);
 							msg.format = 'svg';
 					        	
 				        	if (data.embedImages || data.embedImages == null)

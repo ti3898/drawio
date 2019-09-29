@@ -39,7 +39,7 @@
 
 	Sidebar.prototype.gcp = ['Cards', 'Big Data', 'Compute', 'Developer Tools', 'Extras', 'Identity and Security', 'Machine Learning', 'Management Tools', 'Networking', 'Storage Databases'];
 	
-	Sidebar.prototype.gcp2 = ['Paths', 'Zones', 'Service Cards', 'Compute', 'API Platform and Ecosystems', 'Identity and Security', 'Big Data', 'Data Transfer', 'Cloud AI', 'Internet of Things', 'Storage and Databases', 'Management Tools', 'Networking', 'Developer Tools', 'Expanded Product Cards', 'User Device Cards', 'Product Cards', 'General Icons', 'Icons'];
+	Sidebar.prototype.gcp2 = ['Paths', 'Zones', 'Service Cards', 'Compute', 'API Management', 'Security', 'Data Analytics', 'Data Transfer', 'Cloud AI', 'Internet of Things', 'Databases', 'Storage', 'Management Tools', 'Networking', 'Developer Tools', 'Expanded Product Cards', 'User Device Cards', 'Product Cards', 'General Icons', 'Icons AI Machine Learning', 'Icons Compute', 'Icons Data Analytics', 'Icons Management Tools', 'Icons Networking', 'Icons Developer Tools', 'Icons API Management', 'Icons Internet of Things', 'Icons Databases', 'Icons Storage', 'Icons Security', 'Icons Migration', 'Icons Hybrid and Multi Cloud'];
 	
 	Sidebar.prototype.rack = ['General', 'APC', 'Cisco', 'Dell', 'F5', 'HP', 'IBM', 'Oracle'];
 
@@ -106,7 +106,7 @@
 	                                   {id: 'android', prefix: 'android', libs: [''/*prefix is library*/]}, {id: 'aws3d'},
 	                                   {id: 'flowchart'}, {id: 'basic'}, {id: 'infographic'}, {id: 'arrows'}, {id: 'arrows2'}, {id: 'lean_mapping'}, {id: 'citrix'}, {id: 'azure'}, {id: 'network'}, {id: 'vvd'}, 
 	                                   {id: 'sitemap'}, {id: 'dfd'},
-	                                   {id: 'mscae', prefix: 'mscae', libs: ['Companies', 'EnterpriseFlat', 'Cloud', 'Enterprise', 'General', 'General Symbols', 'Intune', 'OMS', 'OpsManager', 'Other', 'System Center', 'Virtual Machine', 'Deprecated', 'Cloud Color', 'Deprecated Color']},
+	                                   {id: 'mscae', prefix: 'mscae', libs: ['Companies', 'EnterpriseFlat', 'IntuneFlat', 'OMSFlat', 'System CenterFlat', 'AI and ML Service', 'Analytics Service', 'Compute Service', 'Compute Service VM', 'Container Service', 'Databases Service', 'DevOps Service', 'General Service', 'Identity Service', 'Integration Service', 'Internet of Things Service', 'Intune Service', 'Management and Governance Service', 'Management and Governance Service Media', 'Migrate Service', 'Mixed Reality Service', 'Mobile Service', 'Networking Service', 'Other Category Service', 'Security Service', 'Storage Service', 'Web Service']},
 	                                   {id: 'active_directory'},
 	                                   {id: 'bpmn', prefix: 'bpmn', libs: [''/*prefix is library*/, 'Gateways', 'Events']},
 	                                   {id: 'clipart', prefix: null, libs: ['computer', 'finance', 'clipart', 'networking', 'people', 'telco']},
@@ -955,6 +955,10 @@
 			else if (rack[i].toLowerCase() === 'f5')
 			{
 				this.addRackF5Palette();
+			}
+			else if (rack[i].toLowerCase() === 'dell')
+			{
+				this.addRackDellPalette();
 			}
 			else
 			{

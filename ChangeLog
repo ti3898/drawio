@@ -1,3 +1,33 @@
+27-SEP-2019: 12.0.0
+
+- Fixes Google auth for multiple users
+- Fixes default grid color in dark mode
+
+26-SEP-2019: 11.3.2
+
+- Updates Dell rack server stencils
+- Docker image build process improvements
+
+24-SEP-2019: 11.3.1
+
+- Fixes uncompressed XML in SVG
+- Fixes offset for ruler
+
+20-SEP-2019: 11.3.0
+
+- Updates Google Cloud Platform stencils
+- Gliffy import improvements
+- Uses uncompressed XML to fix search in Confluence Cloud
+- Adds global compressXml switch
+- Fixes print output in dark mode
+
+18-SEP-2019: 11.2.9
+
+- Adds pre and post config JS files
+- Fixes page numbers in PDF export
+- Adds globalVars to configuration
+- Adds DRAWIO_CONFIG variable
+
 08-SEP-2019: 11.2.8
 
 - Fixes bugs in PlantUML for Confluence Cloud

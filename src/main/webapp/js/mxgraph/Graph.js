@@ -13,6 +13,30 @@ if (typeof html4 !== 'undefined')
 	//html4.ATTRIBS["video::autobuffer"] = 0;
 }
 
+// Workaround for handling named HTML entities in mxUtils.parseXml
+// LATER: How to configure DOMParser to just ignore all entities?
+(function()
+{
+	var entities = [
+		['nbsp', '160'],
+		['shy', '173']
+    ];
+
+	var parseXml = mxUtils.parseXml;
+	
+	mxUtils.parseXml = function(text)
+	{
+		for (var i = 0; i < entities.length; i++)
+	    {
+	        text = text.replace(new RegExp(
+	        	'&' + entities[i][0] + ';', 'g'),
+		        '&#' + entities[i][1] + ';');
+	    }
+
+		return parseXml(text);
+	};
+})();
+
 // Shim for missing toISOString in older versions of IE
 // See https://stackoverflow.com/questions/12907862
 if (!Date.prototype.toISOString)
@@ -105,7 +129,8 @@ mxGraphView.prototype.gridSteps = 4;
 mxGraphView.prototype.minGridSize = 4;
 
 // UrlParams is null in embed mode
-mxGraphView.prototype.gridColor = '#e0e0e0';
+mxGraphView.prototype.defaultGridColor = '#e0e0e0';
+mxGraphView.prototype.gridColor = mxGraphView.prototype.defaultGridColor;
 
 //Units
 mxGraphView.prototype.unit = mxConstants.POINTS;

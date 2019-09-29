@@ -500,7 +500,7 @@ Graph.prototype.createViewState = function(node)
 	
 	return {
 		gridEnabled: node.getAttribute('grid') != '0',
-		//gridColor: node.getAttribute('gridColor') || mxSettings.getGridColor(),
+		//gridColor: node.getAttribute('gridColor') || mxSettings.getGridColor(uiTheme == 'dark'),
 		gridSize: parseFloat(node.getAttribute('gridSize')) || mxGraph.prototype.gridSize,
 		guidesEnabled: node.getAttribute('guides') != '0',
 		foldingEnabled: node.getAttribute('fold') != '0',
@@ -692,8 +692,13 @@ EditorUi.prototype.updatePageRoot = function(page)
 	if (page.root == null)
 	{
 		var node = this.editor.extractGraphModel(page.node);
+		var cause = Editor.extractParserError(node);
 		
-		if (node != null)
+		if (cause)
+		{
+			throw new Error(cause);
+		}
+		else if (node != null)
 		{
 			page.graphModelNode = node;
 			
@@ -714,7 +719,13 @@ EditorUi.prototype.updatePageRoot = function(page)
 		{
 			var node = this.editor.extractGraphModel(page.node);
 			
-			if (node != null)
+			var cause = Editor.extractParserError(node);
+			
+			if (cause)
+			{
+				throw new Error(cause);
+			}
+			else if (node != null)
 			{
 				page.graphModelNode = node;
 			}

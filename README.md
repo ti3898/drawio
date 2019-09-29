@@ -25,6 +25,15 @@ Another way is to use [the recommended Docker project](https://github.com/fjudit
 
 The full packaged .war of the client and servlets is built when the project is tagged and available on the [releases page](https://github.com/jgraph/draw.io/releases).
 
+logicdesigner 
+-------
+
+This tool can be run from https://ti3898.github.io/drawio/src/main/webapp/index.html, otherwise you can run it locally
+once you have setup a github repository. Navigate to the folder drawio\src\main\webapp and run python -m http.server to
+begin running a local server. Then you can visit any common web browser and type in http://localhost:8000/index.html to 
+run draw.io from your local folder.
+
+
 Supported Browsers
 ------------------
 draw.io supports IE 11, Chrome 32+, Firefox 38+, Safari 9.1.x, 10.1.x and 11.0.x, Opera 20+, Native Android browser 5.1.x+, the default browser in the current and previous major iOS versions (e.g. 11.2.x and 10.3.x) and Edge 23+.
